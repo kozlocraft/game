@@ -7,8 +7,8 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monospace;overflow:hidden;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;user-select:none;}
-#game{width:640px;height:480px;position:relative;background:#000;overflow:hidden;box-shadow:0 0 0 1px #0a0a0a,0 0 40px #00ff5533,0 0 100px #00ff2222;}
+body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monospace;overflow:hidden;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;user-select:none;}#game{transform:scale(1.0);}
+#game{width:min(1800px,98vw);height:min(1350px,98vh);position:relative;background:#000;overflow:hidden;box-shadow:0 0 0 1px #0a0a0a,0 0 40px #00ff5533,0 0 100px #00ff2222;}
 #game.shake{animation:shake .18s ease;}
 
 /* ── SCANLINES ── */
@@ -151,15 +151,15 @@ body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monos
 
 /* ── CREDITS ── */
 #credits-screen{position:absolute;inset:0;background:#000;display:none;overflow:hidden;}
-#credits-scroll{display:flex;flex-direction:column;align-items:center;gap:8px;padding:480px 22px 200px;animation:scrollUp 110s linear forwards;text-align:center;}
-.ch{font-size:8px;color:#ffee44;margin-top:24px;letter-spacing:2px;}
-.cn{font-size:7px;color:#dddddd;line-height:2.4;}
-.cr{font-size:5px;color:#2a3a2a;line-height:2.3;}
+#credits-scroll{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:600px 80px 300px;animation:scrollUp 140s linear forwards;text-align:center;width:100%;max-width:1400px;margin:0 auto;}
+.ch{font-size:18px;color:#ffee44;margin-top:24px;letter-spacing:2px;}
+.cn{font-size:15px;color:#dddddd;line-height:2.4;}
+.cr{font-size:14px;color:#2a3a2a;line-height:2.3;}
 .cs{width:220px;height:1px;background:linear-gradient(90deg,transparent,#1a1a1a,transparent);margin:6px 0;}
-.csp{font-size:7px;color:#66ffff;line-height:2.6;}
-.cthanks{font-size:10px;color:#ff66ff;line-height:2.8;letter-spacing:2px;}
-.cfinal{font-size:6px;color:#224422;line-height:2.8;margin-top:18px;}
-.c-role{font-size:4px;color:#1a2a1a;line-height:2.4;}
+.csp{font-size:17px;color:#66ffff;line-height:2.6;}
+.cthanks{font-size:24px;color:#ff66ff;line-height:2.8;letter-spacing:2px;}
+.cfinal{font-size:16px;color:#224422;line-height:2.8;margin-top:18px;}
+.c-role{font-size:13px;color:#1a2a1a;line-height:2.4;}
 
 /* ── NOTIF ── */
 #notif{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,8,0,.98);border:1px solid #33aa33;padding:6px 18px;font-size:6px;color:#55ff55;z-index:502;display:none;white-space:nowrap;letter-spacing:1px;box-shadow:0 0 16px #33ff3322;animation:slideDown .3s ease;}
@@ -180,6 +180,15 @@ body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monos
 @keyframes shake{0%{transform:translate(0,0);}15%{transform:translate(-4px,3px);}30%{transform:translate(4px,-3px);}45%{transform:translate(-3px,4px);}60%{transform:translate(3px,-2px);}75%{transform:translate(-2px,2px);}100%{transform:translate(0,0);}}
 @keyframes waveIn{from{opacity:0;transform:scale(2);}50%{opacity:1;transform:scale(1);}85%{opacity:1;transform:scale(1);}to{opacity:0;transform:scale(.85);}}
 @keyframes particle{from{opacity:1;transform:translate(0,0) scale(1);}to{opacity:0;transform:translate(var(--px),var(--py)) scale(0);}}
+
+/* LARGE SCREEN SCALE PATCH */
+#game{font-size:250%;}
+#title-stars,#end-stars,#scene-bg-canvas,#arena-canvas{width:100%!important;height:100%!important;}
+#scene-bg{background-size:cover!important;background-position:center!important;}
+#dlg-box{min-height:340px!important;padding:24px 36px!important;}
+#choices{bottom:340px!important;min-width:900px!important;padding:24px 36px!important;}
+button,.cbtn,.qbtn,.bbtn,.dp{transform:scale(1.4);transform-origin:center;}
+
 </style>
 </head>
 <body>
@@ -197,7 +206,7 @@ body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monos
     <div class="t-goat">🐐</div>
     <div class="t-year">— ХРОНИКИ 2026 —</div>
     <div class="t-sub">Survival · Roleplay · KozloCraft</div>
-    <div class="t-ip">kozlocraft.join-mc.net · Java 1.21.1</div>
+    <div class="t-ip">kozlocraft.join-mc.net · Java 1.21.11</div>
     <div class="t-press">[ НАЖМИ ЧТОБЫ НАЧАТЬ ]</div>
     <div class="t-players">
       nekostone · drosi9 · skifold · fazedesigner · Egoridze<br>
@@ -321,7 +330,7 @@ body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monos
       Познакомился с игроками.<br>
       Узнал правду о klekwow 🐐
     </div>
-    <div id="end-ip">🌐 kozlocraft.join-mc.net · Java 1.21.1</div>
+    <div id="end-ip">🌐 kozlocraft.join-mc.net · Java 1.21.11</div>
     <div id="end-music">♫ PLOXYJOY — Фристик (2022) ♫</div>
     <button id="end-btn">СМОТРЕТЬ ТИТРЫ ▶</button>
   </div>
@@ -349,7 +358,7 @@ body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monos
 
       <div class="ch">🏗️ СТРОИТЕЛИ МИРА</div>
       <div class="csp">fazedesigner</div>
-      <div class="c-role">— клан Жуки · дизайн · 3 дня строил базу —</div>
+      <div class="c-role">— игрок в столбы с хорошей удачей · клан Жуки —</div>
       <div class="csp">ivanpuur</div>
       <div class="c-role">— строитель базы клана Жуки —</div>
       <div class="csp">veron1ka05</div>
@@ -364,7 +373,7 @@ body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monos
       <div class="csp">KingSlayer52</div>
       <div class="c-role">— воин арены —</div>
       <div class="csp">flinyxx</div>
-      <div class="c-role">— легенда столбов (и мастер падений) —</div>
+      <div class="c-role">— мастер выживания —</div>
       <div class="csp">Pepsilouxx</div>
       <div class="c-role">— хранитель высот —</div>
       <div class="cs"></div>
@@ -387,7 +396,7 @@ body{background:#000;color:#fff;font-family:'Press Start 2P','Courier New',monos
       <div class="cs"></div>
 
       <div class="ch">🌐 СЕРВЕР</div>
-      <div class="cr">kozlocraft.join-mc.net · Java 1.21.1<br>Telegram: @kozlocraft · 2026</div>
+      <div class="cr">kozlocraft.join-mc.net · Java 1.21.11<br>Telegram: @kozlocraft · 2026</div>
       <div class="cs"></div>
 
       <div class="cthanks">СПАСИБО ВСЕМ!</div>
