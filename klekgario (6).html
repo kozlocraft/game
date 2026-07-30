@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KLEKGARIO — мультиплеер</title>
+<style>
+  :root{
+    --bg-deep:#050e0c;
+    --accent:#5dffb0;
+    --accent2:#ff5d8f;
+    --accent3:#ffd15d;
+    --ink:#eafff2;
+    --dim:#7fb8a2;
+    --panel:#0c1c17ee;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;overflow:hidden;
+    width:100%;height:100%;
+    background:var(--bg-deep);
+    font-family:'Courier New',monospace;
+    color:var(--ink);
+  }
+  #game{display:block;background:var(--bg-deep);}
+
+  #hud{
+    position:fixed;top:16px;left:16px;
+    display:flex;flex-direction:column;gap:6px;
+    pointer-events:none;
+    z-index:5;
+  }
+  .badge{
+    background:var(--panel);
+    border:1px solid #1c3a30;
+    border-left:3px solid var(--accent);
+    padding:6px 12px;
+    font-size:13px;
+    letter-spacing:0.5px;
+    border-radius:2px;
+    color:var(--dim);
+    text-transform:uppercase;
+    backdrop-filter:blur(3px);
+  }
+  .badge b{color:var(--ink);font-weight:700;}
+  .badge.warn{border-left-color:var(--accent3);}
+  .badge.live{border-left-color:var(--accent2);}
+  .dot{
+    display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--dim);margin-right:5px;
+  }
+  .dot.ok{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+  .dot.bad{background:var(--accent2);}
+
+  #soundBtn{
+    position:fixed;bottom:16px;left:16px;
+    background:var(--panel);
+    border:1px solid #1c3a30;
+    color:var(--dim);
+    padding:8px 12px;
+    font-family:inherit;font-size:12px;letter-spacing:1px;
+    border-radius:2px;cursor:pointer;z-index:6;
+  }
+  #soundBtn.on{color:var(--accent);border-color:var(--accent);}
+
+  #leaderboard{
+    position:fixed;top:16px;right:16px;
+    width:210px;
+    background:var(--panel);
+    border:1px solid #1c3a30;
+    border-radius:2px;
+    padding:10px 12px;
+    z-index:5;
+    backdrop-filter:blur(3px);
+  }
+  #leaderboard h3{
+    margin:0 0 8px 0;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--accent3);
+    text-transform:uppercase;
+    border-bottom:1px solid #1c3a30;
+    padding-bottom:6px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  #liveDot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  #leaderboard ol{
+    margin:0;padding:0 0 0 18px;
+    font-size:12px;
+    color:var(--dim);
+  }
+  #leaderboard li{margin:4px 0;transition:color .2s;}
+  #leaderboard li.me{color:var(--accent);font-weight:bold;}
+
+  #minimap{
+    position:fixed;bottom:16px;right:16px;
+    width:130px;height:130px;
+    background:#08150fee;
+    border:1px solid #1c3a30;
+    border-radius:2px;
+    z-index:5;
+  }
+
+  .screen{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 40%, #10261f 0%, #050d0a 75%);
+    z-index:20;
+    flex-direction:column;
+    text-align:center;
+    gap:20px;
+  }
+  .hidden{display:none !important;}
+
+  .logo{
+    font-size:60px;
+    font-weight:900;
+    letter-spacing:6px;
+    color:var(--accent);
+    text-shadow:0 0 18px rgba(93,255,176,0.55), 0 0 2px #fff;
+    position:relative;
+    animation:float 3.5s ease-in-out infinite;
+  }
+  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  .logo span{color:var(--accent2);}
+  .logo::after{
+    content:"живые клёки онлайн";
+    position:absolute;
+    bottom:-22px;left:50%;
+    transform:translateX(-50%);
+    font-size:12px;
+    letter-spacing:3px;
+    color:var(--dim);
+    text-transform:uppercase;
+    text-shadow:none;
+  }
+
+  #nameInput{
+    background:#0c1c17;
+    border:1px solid #2a4a3c;
+    border-bottom:2px solid var(--accent);
+    color:var(--ink);
+    font-family:inherit;
+    font-size:16px;
+    padding:10px 14px;
+    width:260px;
+    text-align:center;
+    letter-spacing:1px;
+    outline:none;
+    border-radius:2px;
+  }
+  #nameInput::placeholder{color:#4a6a5c;}
+
+  #colorPicker{display:flex;gap:8px;justify-content:center;}
+  .swatch{
+    width:26px;height:26px;border-radius:50%;cursor:pointer;
+    border:2px solid transparent;transition:transform .1s, border-color .1s;
+  }
+  .swatch:hover{transform:scale(1.15);}
+  .swatch.selected{border-color:#fff;transform:scale(1.2);}
+
+  .btn{
+    background:var(--accent);
+    color:#04140d;
+    border:none;
+    font-family:inherit;
+    font-weight:800;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    font-size:14px;
+    padding:12px 34px;
+    border-radius:2px;
+    cursor:pointer;
+    box-shadow:0 0 0 1px #0e2a1f, 0 6px 0 #1f7a52, 0 10px 18px rgba(0,0,0,0.4);
+    transition:transform .06s ease;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 0 0 1px #0e2a1f, 0 2px 0 #1f7a52;}
+  .btn:disabled{opacity:0.5;cursor:default;}
+
+  .hint{
+    color:var(--dim);
+    font-size:12px;
+    letter-spacing:1px;
+    max-width:360px;
+    line-height:1.6;
+  }
+
+  #onlineCount{color:var(--accent3);font-size:12px;letter-spacing:2px;display:flex;align-items:center;gap:6px;}
+
+  #deathStats{
+    color:var(--accent3);
+    font-size:14px;
+    letter-spacing:1px;
+  }
+  #deathStats b{color:var(--accent2);font-size:20px;}
+  #deathRank{color:var(--dim);font-size:12px;letter-spacing:1px;}
+
+  /* --- Twitch / экономика --- */
+  #authBar{
+    display:flex;align-items:center;gap:10px;justify-content:center;
+    flex-wrap:wrap;
+  }
+  .twitchBtn{
+    background:#9146ff;color:#fff;border:none;
+    font-family:inherit;font-weight:800;letter-spacing:1px;
+    font-size:12px;text-transform:uppercase;
+    padding:9px 18px;border-radius:2px;cursor:pointer;
+    box-shadow:0 4px 0 #5c2ea8;
+  }
+  .twitchBtn:active{transform:translateY(3px);box-shadow:none;}
+  #userChip{
+    display:flex;align-items:center;gap:8px;
+    background:var(--panel);border:1px solid #1c3a30;
+    border-radius:20px;padding:5px 14px 5px 5px;
+  }
+  #userChip img{width:26px;height:26px;border-radius:50%;}
+  #userChip .uname{font-size:13px;color:var(--ink);}
+  #coinChip{color:var(--accent3);font-weight:800;font-size:13px;}
+  #logoutBtn{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;font-family:inherit;}
+  .smallBtn{
+    background:var(--panel);border:1px solid #1c3a30;color:var(--ink);
+    font-family:inherit;font-size:12px;letter-spacing:1px;text-transform:uppercase;
+    padding:8px 16px;border-radius:2px;cursor:pointer;
+  }
+  .smallBtn:hover{border-color:var(--accent);}
+
+  #boostRow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);}
+  #boostSelect{
+    background:#0c1c17;color:var(--ink);border:1px solid #2a4a3c;
+    font-family:inherit;font-size:12px;padding:6px 8px;border-radius:2px;
+  }
+
+  #shopOverlay{
+    position:fixed;inset:0;z-index:30;
+    background:rgba(2,8,6,0.82);
+    display:flex;align-items:center;justify-content:center;
+  }
+  #shopModal{
+    width:min(640px,92vw);max-height:82vh;overflow-y:auto;
+    background:var(--panel);border:1px solid #1c3a30;border-radius:4px;
+    padding:22px 24px;
+  }
+  #shopModal h2{
+    margin:0 0 4px 0;font-size:18px;letter-spacing:2px;color:var(--accent);
+    text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;
+  }
+  #shopModal h2 span{cursor:pointer;color:var(--dim);font-size:22px;}
+  #shopModal h4{
+    margin:18px 0 10px;font-size:12px;letter-spacing:2px;color:var(--accent3);
+    text-transform:uppercase;border-bottom:1px solid #1c3a30;padding-bottom:6px;
+  }
+  .shopGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .shopItem{
+    border:1px solid #1c3a30;border-radius:3px;padding:10px 12px;
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .shopItem .iname{font-weight:800;font-size:13px;color:var(--ink);}
+  .shopItem .idesc{font-size:11px;color:var(--dim);line-height:1.4;min-height:28px;}
+  .shopItem .irow{display:flex;justify-content:space-between;align-items:center;}
+  .shopItem .icost{color:var(--accent3);font-size:12px;font-weight:800;}
+  .buyBtn{
+    background:var(--accent);color:#04140d;border:none;font-family:inherit;
+    font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;
+    padding:6px 12px;border-radius:2px;cursor:pointer;
+  }
+  .buyBtn:disabled{background:#2a4a3c;color:#7fb8a2;cursor:default;}
+  .buyBtn.equipped{background:var(--accent2);color:#2a0715;}
+  #shopHint{font-size:11px;color:var(--dim);margin-top:14px;line-height:1.5;}
+
+  #streamerToggleRow{font-size:11px;color:var(--dim);display:flex;gap:6px;align-items:center;justify-content:center;}
+  #streamerPanel{
+    display:flex;flex-direction:column;gap:8px;align-items:center;
+    background:var(--panel);border:1px solid #1c3a30;border-left:3px solid var(--accent2);
+    border-radius:2px;padding:12px 16px;width:320px;
+  }
+  #streamerPanel input{
+    background:#0c1c17;border:1px solid #2a4a3c;color:var(--ink);
+    font-family:inherit;font-size:12px;padding:7px 9px;border-radius:2px;width:100%;
+    text-align:center;
+  }
+  #streamerPanel label{font-size:10px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;align-self:flex-start;}
+  #pubsubStatus{font-size:11px;color:var(--accent3);min-height:14px;}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="badge">масса: <b id="massVal">0</b></div>
+  <div class="badge live"><span class="dot" id="syncDot"></span>синк: <b id="syncVal">...</b></div>
+</div>
+
+<button id="soundBtn">&#128266; звук: выкл</button>
+
+<div id="leaderboard" class="hidden">
+  <h3>топ клёков <span id="liveDot"></span></h3>
+  <ol id="lbList"></ol>
+</div>
+
+<canvas id="minimap" class="hidden"></canvas>
+
+<div id="startScreen" class="screen">
+  <div class="logo">KLEK<span>GARIO</span></div>
+
+  <div id="authBar">
+    <button class="twitchBtn" id="twitchLoginBtn">Войти через Twitch</button>
+  </div>
+
+  <input id="nameInput" type="text" placeholder="твой ник, клёк" maxlength="14">
+  <div id="colorPicker"></div>
+
+  <div id="boostRow" class="hidden">
+    бустер:
+    <select id="boostSelect"><option value="">не использовать</option></select>
+    <button class="smallBtn" id="openShopBtn">Магазин</button>
+  </div>
+
+  <button class="btn" id="playBtn">В клёчку!</button>
+  <div id="onlineCount"><span class="dot ok"></span>поиск живых клёков...</div>
+
+  <div id="streamerToggleRow">
+    <input type="checkbox" id="streamerToggle"> я стример — принимать баллы канала
+  </div>
+  <div id="streamerPanel" class="hidden">
+    <label>точное название награды за баллы</label>
+    <input id="rewardTitleInput" placeholder="например: 100 коинов KLEKGARIO">
+    <label>коинов за один обмен</label>
+    <input id="coinsPerRedemptionInput" type="number" value="100" min="1">
+    <button class="smallBtn" id="connectPubsubBtn">Подключить приём баллов</button>
+    <div id="pubsubStatus"></div>
+  </div>
+
+  <div class="hint">
+    Мышь — движение. W — выплюнуть кусочек массы.<br>
+    Настоящий мультиплеер: только реальные игроки, открывшие эту же игру.
+    Позиции синхронизируются несколько раз в секунду с плавным сглаживанием между обновлениями.<br>
+    Войди через Twitch, чтобы копить коины за баллы канала и тратить их в магазине на бустеры и скины.
+  </div>
+</div>
+
+<div id="shopOverlay" class="hidden">
+  <div id="shopModal">
+    <h2>Магазин <span id="closeShopBtn">&times;</span></h2>
+    <div id="shopCoinsLine" style="font-size:12px;color:var(--dim);margin-bottom:6px;"></div>
+    <h4>Бустеры (разовые)</h4>
+    <div class="shopGrid" id="boostsGrid"></div>
+    <h4>Трапки (косметика)</h4>
+    <div class="shopGrid" id="skinsGrid"></div>
+    <div id="shopHint">Бустеры тратятся один раз за игру. Трапки покупаются навсегда, экипировать можно только одну.</div>
+  </div>
+</div>
+
+<div id="deathScreen" class="screen hidden">
+  <div class="logo" style="font-size:44px;">ТЫ БЫЛ СЪЕДЕН</div>
+  <div id="deathStats">Максимальная масса: <b id="finalMass">0</b></div>
+  <div id="deathRank"></div>
+  <button class="btn" id="respawnBtn">Ещё раз</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const mini = document.getElementById('minimap');
+const mctx = mini.getContext('2d');
+
+function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+mini.width = 130; mini.height = 130;
+
+const WORLD = { w: 4000, h: 4000 };
+const FOOD_COUNT = 380;
+const POLL_MS = 650;          // как часто пишем/читаем состояние
+const STALE_MS = 9000;        // когда считаем игрока отключившимся
+const EXTRAPOLATE_CAP = 1400; // мс, дальше которых не доверяем прогнозу скорости
+
+const COLORS = [
+  '#5dffb0','#ff5d8f','#ffd15d','#5dc8ff','#c65dff',
+  '#ff8b5d','#5dffe4','#a3ff5d','#ff5d5d','#a05dff'
+];
+
+function rand(a,b){ return a + Math.random()*(b-a); }
+function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function massToRadius(m){ return 6 + Math.sqrt(m) * 3.2; }
+function radiusToSpeed(r){ return Math.max(1.3, 7.2 - r*0.018); }
+function hexToRgb(hex){
+  const n = parseInt(hex.slice(1),16);
+  return [(n>>16)&255,(n>>8)&255,n&255];
+}
+
+// ---------------------------------------------------------------
+// Twitch + экономика (коины, бустеры, трапки)
+// ---------------------------------------------------------------
+const TWITCH_CLIENT_ID = 'ml7u7srkkole0297whti5ldmxe9fux';
+const TWITCH_REDIRECT_URI = location.origin + location.pathname;
+const TWITCH_SCOPES = 'channel:read:redemptions';
+const TWITCH_STATE_KEY = 'klekgario_twitch_state';
+
+// Заполни после создания проекта на supabase.com, если хостишь игру
+// вне Claude (например на GitHub Pages) — там window.storage недоступен,
+// а коины должны переживать перезагрузку страницы и быть общими для
+// стримера и зрителей. Без этого коины будут работать только внутри
+// текущей вкладки/сессии Claude-превью.
+// SQL для таблицы:
+//   create table player_economy (
+//     twitch_id text primary key,
+//     login text, display_name text,
+//     coins integer not null default 0,
+//     inventory jsonb not null default '{"skins":[],"boosts":{},"activeSkin":null}'::jsonb,
+//     updated_at timestamptz default now()
+//   );
+//   alter table player_economy enable row level security;
+//   create policy "public rw" on player_economy for all using (true) with check (true);
+const SUPABASE_URL = '';
+const SUPABASE_ANON_KEY = '';
+const ECON_BACKEND = (SUPABASE_URL && SUPABASE_ANON_KEY) ? 'supabase' : 'storage';
+
+const BOOSTS = [
+  { id:'speed_potion', name:'Зелье скорости', desc:'+40% скорости первые 20 сек', cost:150 },
+  { id:'shield',       name:'Щит',            desc:'Неуязвимость первые 8 сек',    cost:200 },
+  { id:'magnet',       name:'Магнит',         desc:'Еда притягивается 30 сек',     cost:120 },
+  { id:'mega_start',   name:'Мега-старт',     desc:'Старт с массой 80 вместо 22',  cost:250 }
+];
+const SKINS = [
+  { id:'neon_trail', name:'Неоновый след', desc:'Светящийся след частиц позади',       cost:300 },
+  { id:'crown',      name:'Корона',        desc:'Корона над ником',                     cost:400 },
+  { id:'galaxy',     name:'Галактика',     desc:'Переливающаяся текстура клёка',        cost:500 },
+  { id:'kozlo_horns',name:'Рога KozloCraft',desc:'Рожки козла в стиле сервера',         cost:350 }
+];
+
+let twitchToken = null;
+let twitchUser = null;      // {id, login, display_name, profile_image_url}
+let myEconomy = { coins:0, inventory:{ skins:[], boosts:{}, activeSkin:null } };
+let activeBoostId = '';     // выбранный на старте бустер
+let myBoostTimers = { speedUntil:0, shieldUntil:0, magnetUntil:0 };
+
+function emptyEconomy(){ return { coins:0, inventory:{ skins:[], boosts:{}, activeSkin:null } }; }
+
+async function loadEconomy(twitchId){
+  if(ECON_BACKEND === 'supabase'){
+    try{
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/player_economy?twitch_id=eq.${twitchId}&select=coins,inventory`, {
+        headers:{ apikey: SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}` }
+      });
+      const rows = await res.json();
+      if(Array.isArray(rows) && rows[0]) return { coins: rows[0].coins||0, inventory: rows[0].inventory || emptyEconomy().inventory };
+    }catch(e){ /* сеть недоступна */ }
+    return emptyEconomy();
+  } else {
+    try{
+      const r = await window.storage.get('econ:'+twitchId, true);
+      if(r) return JSON.parse(r.value);
+    }catch(e){ /* записи ещё нет */ }
+    return emptyEconomy();
+  }
+}
+
+async function saveEconomy(twitchId, login, displayName, data){
+  if(ECON_BACKEND === 'supabase'){
+    try{
+      await fetch(`${SUPABASE_URL}/rest/v1/player_economy`, {
+        method:'POST',
+        headers:{
+          apikey: SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type':'application/json', Prefer:'resolution=merge-duplicates'
+        },
+        body: JSON.stringify([{ twitch_id: twitchId, login, display_name: displayName, coins: data.coins, inventory: data.inventory }])
+      });
+    }catch(e){ /* ignore */ }
+  } else {
+    try{ await window.storage.set('econ:'+twitchId, JSON.stringify(data), true); }catch(e){ /* ignore */ }
+  }
+}
+
+async function creditCoins(id, login, name, amount){
+  const data = await loadEconomy(id);
+  data.coins = (data.coins||0) + amount;
+  await saveEconomy(id, login, name, data);
+  if(twitchUser && twitchUser.id === id){ myEconomy = data; renderShop(); renderAuthUI(); }
+}
+
+// ---- OAuth (implicit flow, без клиентского секрета) ----
+let twitchAuthError = null;
+
+function randomState(){
+  const arr = new Uint8Array(16);
+  (window.crypto || window.msCrypto).getRandomValues(arr);
+  return Array.from(arr, b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function twitchLogin(){
+  const state = randomState();
+  try{ sessionStorage.setItem(TWITCH_STATE_KEY, state); }catch(e){ /* приватный режим и т.п. */ }
+  const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}`
+    + `&redirect_uri=${encodeURIComponent(TWITCH_REDIRECT_URI)}`
+    + `&response_type=token&scope=${encodeURIComponent(TWITCH_SCOPES)}`
+    + `&state=${state}`;
+  location.href = url;
+}
+function twitchLogout(){
+  twitchToken = null; twitchUser = null;
+  twitchAuthError = null;
+  myEconomy = emptyEconomy();
+  disconnectPubSub();
+  renderAuthUI(); renderShop();
+}
+async function fetchTwitchUser(token){
+  try{
+    const res = await fetch('https://api.twitch.tv/helix/users', {
+      headers:{ 'Client-Id': TWITCH_CLIENT_ID, Authorization:`Bearer ${token}` }
+    });
+    if(res.status === 401){
+      // токен просрочен/отозван
+      return { __invalid: true };
+    }
+    const json = await res.json();
+    return (json.data && json.data[0]) || null;
+  }catch(e){ return null; }
+}
+async function validateTwitchToken(token){
+  // рекомендуемая Twitch-практика: проверять токен через /oauth2/validate,
+  // а не просто дёргать helix и надеяться на лучшее
+  try{
+    const res = await fetch('https://id.twitch.tv/oauth2/validate', {
+      headers:{ Authorization:`OAuth ${token}` }
+    });
+    return res.ok;
+  }catch(e){ return false; }
+}
+async function handleTwitchRedirect(){
+  // Twitch может вернуть ошибку в query (?error=access_denied&error_description=...)
+  const qparams = new URLSearchParams(location.search);
+  if(qparams.get('error')){
+    twitchAuthError = qparams.get('error_description') || qparams.get('error');
+    history.replaceState(null, '', location.pathname);
+  }
+
+  if(location.hash && location.hash.includes('access_token')){
+    const params = new URLSearchParams(location.hash.slice(1));
+    const token = params.get('access_token');
+    const returnedState = params.get('state');
+    const expectedState = (()=>{ try{ return sessionStorage.getItem(TWITCH_STATE_KEY); }catch(e){ return null; } })();
+    history.replaceState(null, '', location.pathname + location.search);
+    try{ sessionStorage.removeItem(TWITCH_STATE_KEY); }catch(e){}
+
+    if(token && expectedState && returnedState !== expectedState){
+      twitchAuthError = 'проверка безопасности не пройдена, попробуй войти ещё раз';
+    } else if(token){
+      const valid = await validateTwitchToken(token);
+      if(!valid){
+        twitchAuthError = 'не удалось подтвердить токен Twitch, попробуй снова';
+      } else {
+        const u = await fetchTwitchUser(token);
+        if(u && !u.__invalid){
+          twitchToken = token;
+          twitchUser = u;
+          twitchAuthError = null;
+          myEconomy = await loadEconomy(u.id);
+          document.getElementById('nameInput').value = u.display_name;
+        } else {
+          twitchAuthError = 'не удалось получить данные профиля Twitch';
+        }
+      }
+    }
+  }
+  renderAuthUI();
+  renderShop();
+}
+
+function renderAuthUI(){
+  const bar = document.getElementById('authBar');
+  const boostRow = document.getElementById('boostRow');
+  if(twitchUser){
+    bar.innerHTML = `
+      <div id="userChip">
+        <img src="${twitchUser.profile_image_url}" alt="">
+        <span class="uname">${twitchUser.display_name}</span>
+        <span id="coinChip">${Math.round(myEconomy.coins)} коин.</span>
+        <button id="logoutBtn" title="Выйти">&times;</button>
+      </div>`;
+    document.getElementById('logoutBtn').addEventListener('click', twitchLogout);
+    boostRow.classList.remove('hidden');
+  } else {
+    bar.innerHTML = `<button class="twitchBtn" id="twitchLoginBtn">Войти через Twitch</button>`
+      + (twitchAuthError ? `<div style="width:100%;color:var(--accent2);font-size:11px;letter-spacing:0.5px;margin-top:4px;">${twitchAuthError}</div>` : '');
+    document.getElementById('twitchLoginBtn').addEventListener('click', twitchLogin);
+    boostRow.classList.add('hidden');
+  }
+  refreshBoostSelect();
+}
+
+function refreshBoostSelect(){
+  const sel = document.getElementById('boostSelect');
+  sel.innerHTML = '<option value="">не использовать</option>';
+  if(!twitchUser) return;
+  for(const b of BOOSTS){
+    const count = (myEconomy.inventory.boosts && myEconomy.inventory.boosts[b.id]) || 0;
+    if(count > 0){
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = `${b.name} (${count} шт.)`;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+// ---- Магазин ----
+function renderShop(){
+  const coinsLine = document.getElementById('shopCoinsLine');
+  coinsLine.textContent = twitchUser ? `Твои коины: ${Math.round(myEconomy.coins)}` : 'Войди через Twitch, чтобы покупать';
+
+  const bGrid = document.getElementById('boostsGrid');
+  bGrid.innerHTML = '';
+  for(const b of BOOSTS){
+    const owned = (myEconomy.inventory.boosts && myEconomy.inventory.boosts[b.id]) || 0;
+    const canBuy = twitchUser && myEconomy.coins >= b.cost;
+    const el = document.createElement('div');
+    el.className = 'shopItem';
+    el.innerHTML = `
+      <div class="iname">${b.name}${owned?` <span style="color:var(--dim);font-weight:400;">×${owned}</span>`:''}</div>
+      <div class="idesc">${b.desc}</div>
+      <div class="irow"><span class="icost">${b.cost} коин.</span>
+      <button class="buyBtn" data-boost="${b.id}" ${canBuy?'':'disabled'}>Купить</button></div>`;
+    bGrid.appendChild(el);
+  }
+  bGrid.querySelectorAll('[data-boost]').forEach(btn=>{
+    btn.addEventListener('click', ()=>buyBoost(btn.getAttribute('data-boost')));
+  });
+
+  const sGrid = document.getElementById('skinsGrid');
+  sGrid.innerHTML = '';
+  for(const s of SKINS){
+    const owned = myEconomy.inventory.skins && myEconomy.inventory.skins.includes(s.id);
+    const equipped = myEconomy.inventory.activeSkin === s.id;
+    const canBuy = twitchUser && !owned && myEconomy.coins >= s.cost;
+    const el = document.createElement('div');
+    el.className = 'shopItem';
+    el.innerHTML = `
+      <div class="iname">${s.name}</div>
+      <div class="idesc">${s.desc}</div>
+      <div class="irow">
+        <span class="icost">${owned ? 'куплено' : s.cost+' коин.'}</span>
+        ${owned
+          ? `<button class="buyBtn ${equipped?'equipped':''}" data-equip="${s.id}">${equipped?'Снять':'Экипировать'}</button>`
+          : `<button class="buyBtn" data-skin="${s.id}" ${canBuy?'':'disabled'}>Купить</button>`}
+      </div>`;
+    sGrid.appendChild(el);
+  }
+  sGrid.querySelectorAll('[data-skin]').forEach(btn=>{
+    btn.addEventListener('click', ()=>buySkin(btn.getAttribute('data-skin')));
+  });
+  sGrid.querySelectorAll('[data-equip]').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleEquipSkin(btn.getAttribute('data-equip')));
+  });
+}
+
+async function buyBoost(boostId){
+  if(!twitchUser) return;
+  const boost = BOOSTS.find(b=>b.id===boostId);
+  if(!boost || myEconomy.coins < boost.cost) return;
+  myEconomy.coins -= boost.cost;
+  myEconomy.inventory.boosts[boostId] = (myEconomy.inventory.boosts[boostId]||0) + 1;
+  await saveEconomy(twitchUser.id, twitchUser.login, twitchUser.display_name, myEconomy);
+  renderShop(); renderAuthUI();
+}
+async function buySkin(skinId){
+  if(!twitchUser) return;
+  const skin = SKINS.find(s=>s.id===skinId);
+  if(!skin || myEconomy.inventory.skins.includes(skinId) || myEconomy.coins < skin.cost) return;
+  myEconomy.coins -= skin.cost;
+  myEconomy.inventory.skins.push(skinId);
+  await saveEconomy(twitchUser.id, twitchUser.login, twitchUser.display_name, myEconomy);
+  renderShop(); renderAuthUI();
+}
+async function toggleEquipSkin(skinId){
+  if(!twitchUser) return;
+  myEconomy.inventory.activeSkin = (myEconomy.inventory.activeSkin === skinId) ? null : skinId;
+  await saveEconomy(twitchUser.id, twitchUser.login, twitchUser.display_name, myEconomy);
+  renderShop();
+}
+
+document.getElementById('openShopBtn').addEventListener('click', ()=>{
+  renderShop();
+  document.getElementById('shopOverlay').classList.remove('hidden');
+});
+document.getElementById('closeShopBtn').addEventListener('click', ()=>{
+  document.getElementById('shopOverlay').classList.add('hidden');
+});
+
+// ---- Twitch PubSub: приём наград за баллы канала ----
+let pubsubSocket = null;
+let pubsubPingTimer = null;
+function setPubsubStatus(text){ const el = document.getElementById('pubsubStatus'); if(el) el.textContent = text; }
+
+function connectPubSub(broadcasterId, token, rewardFilter, coinsAmount){
+  disconnectPubSub();
+  pubsubSocket = new WebSocket('wss://pubsub-edge.twitch.tv');
+  pubsubSocket.onopen = () => {
+    pubsubSocket.send(JSON.stringify({
+      type:'LISTEN',
+      nonce: Math.random().toString(36).slice(2),
+      data:{ topics:['channel-points-channel-v1.'+broadcasterId], auth_token: token }
+    }));
+    pubsubPingTimer = setInterval(()=>{
+      if(pubsubSocket && pubsubSocket.readyState === 1) pubsubSocket.send(JSON.stringify({type:'PING'}));
+    }, 4*60*1000);
+    setPubsubStatus('подключено — жду обмены баллов...');
+  };
+  pubsubSocket.onmessage = (ev) => {
+    let msg; try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+    if(msg.type === 'RECONNECT'){ connectPubSub(broadcasterId, token, rewardFilter, coinsAmount); return; }
+    if(msg.type === 'RESPONSE' && msg.error){ setPubsubStatus('ошибка подписки: '+msg.error); return; }
+    if(msg.type === 'MESSAGE' && msg.data && msg.data.topic && msg.data.topic.indexOf('channel-points-channel-v1') === 0){
+      try{
+        const inner = JSON.parse(msg.data.message);
+        const redemption = inner.data && inner.data.redemption;
+        if(!redemption || !redemption.reward) return;
+        const title = (redemption.reward.title||'').trim().toLowerCase();
+        const filter = (rewardFilter||'').trim().toLowerCase();
+        if(filter && title !== filter) return;
+        const u = redemption.user;
+        creditCoins(u.id, u.login, u.display_name, coinsAmount);
+        setPubsubStatus(`начислено ${coinsAmount} коинов игроку ${u.display_name}`);
+      }catch(e){ /* ignore */ }
+    }
+  };
+  pubsubSocket.onclose = () => { clearInterval(pubsubPingTimer); setPubsubStatus('соединение закрыто'); };
+  pubsubSocket.onerror = () => setPubsubStatus('ошибка соединения с Twitch');
+}
+function disconnectPubSub(){
+  if(pubsubSocket){ try{ pubsubSocket.close(); }catch(e){} pubsubSocket = null; }
+  clearInterval(pubsubPingTimer);
+}
+
+document.getElementById('streamerToggle').addEventListener('change', (e)=>{
+  document.getElementById('streamerPanel').classList.toggle('hidden', !e.target.checked);
+});
+document.getElementById('connectPubsubBtn').addEventListener('click', ()=>{
+  if(!twitchUser || !twitchToken){ setPubsubStatus('сначала войди через Twitch (своим стримерским аккаунтом)'); return; }
+  const rewardFilter = document.getElementById('rewardTitleInput').value;
+  const coinsAmount = parseInt(document.getElementById('coinsPerRedemptionInput').value, 10) || 100;
+  connectPubSub(twitchUser.id, twitchToken, rewardFilter, coinsAmount);
+});
+
+handleTwitchRedirect();
+
+// ---------------------------------------------------------------
+// Sound (WebAudio, без файлов)
+// ---------------------------------------------------------------
+let audioCtx = null;
+let soundOn = false;
+function ensureAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+function beep(freq, dur, type, gainVal){
+  if(!soundOn || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type||'sine';
+  osc.frequency.value = freq;
+  gain.gain.value = gainVal||0.06;
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+  osc.stop(audioCtx.currentTime + dur);
+}
+function sfxEatFood(){ beep(rand(500,700), 0.07, 'sine', 0.035); }
+function sfxEatPlayer(){ beep(220,0.18,'sawtooth',0.08); beep(440,0.16,'sine',0.06); }
+function sfxDeath(){ beep(180,0.5,'sawtooth',0.09); }
+
+document.getElementById('soundBtn').addEventListener('click', ()=>{
+  ensureAudio();
+  soundOn = !soundOn;
+  if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+  const btn = document.getElementById('soundBtn');
+  btn.textContent = '\uD83D\uDD08 звук: ' + (soundOn?'вкл':'выкл');
+  btn.classList.toggle('on', soundOn);
+});
+
+// ---------------------------------------------------------------
+// Food (локальная, для плавности не синхронизируется между игроками)
+// ---------------------------------------------------------------
+let food = [];
+function spawnFood(n){
+  for(let i=0;i<n;i++){
+    food.push({
+      x: rand(0, WORLD.w), y: rand(0, WORLD.h), r: rand(3,6),
+      color: COLORS[Math.floor(Math.random()*COLORS.length)],
+      vx:0, vy:0, pulse: rand(0, Math.PI*2)
+    });
+  }
+}
+
+// floating text / particle effects
+let floaters = [];
+let particles = [];
+function addFloater(x,y,text,color){
+  floaters.push({x,y,text,color,life:1,vy:-0.6});
+}
+function addBurst(x,y,color,n){
+  for(let i=0;i<(n||10);i++){
+    const a = rand(0,Math.PI*2), sp = rand(1,4);
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,color});
+  }
+}
+
+// ---------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------
+const MY_ID = 'p_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+let myName = 'Клёк';
+let myColor = COLORS[Math.floor(Math.random()*COLORS.length)];
+
+let me = null;
+let otherPlayers = {};
+let mouse = { x:0, y:0 };
+let camera = { x:0, y:0, zoom:1, shake:0 };
+let running = false;
+let maxMassReached = 0;
+let syncOk = false;
+let lastRankAtDeath = null;
+
+// ---------------------------------------------------------------
+// Color picker UI
+// ---------------------------------------------------------------
+const pickerEl = document.getElementById('colorPicker');
+COLORS.forEach((c,i)=>{
+  const sw = document.createElement('div');
+  sw.className = 'swatch' + (c===myColor?' selected':'');
+  sw.style.background = c;
+  sw.addEventListener('click', ()=>{
+    myColor = c;
+    [...pickerEl.children].forEach(ch=>ch.classList.remove('selected'));
+    sw.classList.add('selected');
+  });
+  pickerEl.appendChild(sw);
+});
+
+// ---------------------------------------------------------------
+// Input
+// ---------------------------------------------------------------
+canvas.addEventListener('mousemove', (e)=>{ mouse.x = e.clientX; mouse.y = e.clientY; });
+canvas.addEventListener('touchmove', (e)=>{
+  const t = e.touches[0];
+  if(t){ mouse.x = t.clientX; mouse.y = t.clientY; }
+  e.preventDefault();
+}, {passive:false});
+
+window.addEventListener('keydown', (e)=>{
+  if(!running || !me || !me.alive) return;
+  if(e.code === 'KeyW'){ tryEject(); }
+});
+
+function tryEject(){
+  if(me.mass < 40) return;
+  me.mass -= 16;
+  me.r = massToRadius(me.mass);
+  const angle = Math.atan2(me.dirY||0, me.dirX||1);
+  food.push({
+    x: me.x + Math.cos(angle)*(me.r+10), y: me.y + Math.sin(angle)*(me.r+10),
+    r: 5.5, color: myColor,
+    vx: Math.cos(angle)*11, vy: Math.sin(angle)*11, pulse:0
+  });
+}
+
+// ---------------------------------------------------------------
+// Storage sync
+// ---------------------------------------------------------------
+async function pushMyState(){
+  if(!me) return;
+  try{
+    await window.storage.set('p:'+MY_ID, JSON.stringify({
+      name: myName, color: myColor,
+      x: me.x, y: me.y, mass: me.mass, r: me.r,
+      alive: me.alive, ts: Date.now()
+    }), true);
+    syncOk = true;
+  }catch(err){ syncOk = false; }
+}
+
+async function killRemote(id, remainingMass){
+  try{
+    const res = await window.storage.get('p:'+id, true);
+    if(!res) return;
+    const data = JSON.parse(res.value);
+    data.alive = false;
+    data.mass = remainingMass;
+    data.ts = Date.now();
+    await window.storage.set('p:'+id, JSON.stringify(data), true);
+  }catch(err){ /* ignore */ }
+}
+
+async function pollOthers(){
+  try{
+    const listRes = await window.storage.list('p:', true);
+    if(!listRes || !listRes.keys) return;
+    const now = Date.now();
+    const seen = new Set();
+    for(const key of listRes.keys){
+      const id = key.slice(2);
+      if(id === MY_ID) continue;
+      seen.add(id);
+      try{
+        const r = await window.storage.get(key, true);
+        if(!r) continue;
+        const data = JSON.parse(r.value);
+        if(now - data.ts > STALE_MS){
+          delete otherPlayers[id];
+          continue;
+        }
+        const prev = otherPlayers[id];
+        let vx = 0, vy = 0;
+        if(prev && prev.rawTs){
+          const dt = (data.ts - prev.rawTs)/1000;
+          if(dt > 0.05){ vx = (data.x - prev.rawX)/dt; vy = (data.y - prev.rawY)/dt; }
+        }
+        const wasAlive = prev ? prev.alive : true;
+        otherPlayers[id] = {
+          name: data.name, color: data.color,
+          rawX: data.x, rawY: data.y, rawTs: data.ts,
+          vx, vy,
+          mass: data.mass, r: massToRadius(data.mass),
+          alive: data.alive,
+          dispX: prev ? prev.dispX : data.x,
+          dispY: prev ? prev.dispY : data.y,
+          recvAt: now
+        };
+        if(wasAlive && !data.alive && prev){
+          addBurst(prev.dispX, prev.dispY, data.color, 18);
+        }
+      }catch(e){ /* skip broken entry */ }
+    }
+    for(const id in otherPlayers){ if(!seen.has(id)) delete otherPlayers[id]; }
+    syncOk = true;
+  }catch(err){ syncOk = false; }
+}
+
+let pollBusy = false;
+async function pollCycle(){
+  if(pollBusy) return;
+  pollBusy = true;
+  await pushMyState();
+  await pollOthers();
+  pollBusy = false;
+}
+
+// ---------------------------------------------------------------
+// Eating
+// ---------------------------------------------------------------
+function handleLocalEating(){
+  for(let i=food.length-1;i>=0;i--){
+    const f = food[i];
+    if(f.vx){ f.x+=f.vx; f.y+=f.vy; f.vx*=0.9; f.vy*=0.9; if(Math.abs(f.vx)<0.05){f.vx=0;f.vy=0;} }
+    f.pulse += 0.05;
+    if(me && me.alive && Date.now() < myBoostTimers.magnetUntil){
+      const md = dist(me,f);
+      if(md < 240 && md > 1){
+        f.x += (me.x-f.x)/md * 3.2;
+        f.y += (me.y-f.y)/md * 3.2;
+      }
+    }
+    if(me && me.alive && dist(me,f) < me.r){
+      const gained = f.r*1.1;
+      me.mass += gained;
+      me.r = massToRadius(me.mass);
+      addBurst(f.x,f.y,f.color,4);
+      sfxEatFood();
+      food.splice(i,1);
+    }
+  }
+  while(food.length < FOOD_COUNT) spawnFood(1);
+
+  if(!me || !me.alive) return;
+
+  for(const id in otherPlayers){
+    const o = otherPlayers[id];
+    if(!o.alive) continue;
+    const d = dist(me, {x:o.dispX,y:o.dispY});
+    if(d < me.r*0.85 && me.mass > o.mass*1.15){
+      const gained = o.mass*0.85;
+      me.mass += gained;
+      me.r = massToRadius(me.mass);
+      addFloater(me.x, me.y - me.r - 10, '+'+Math.round(gained), '#5dffb0');
+      addBurst(o.dispX,o.dispY,o.color,22);
+      camera.shake = 8;
+      sfxEatPlayer();
+      o.alive = false;
+      killRemote(id, 0);
+    } else if(d < o.r*0.85 && o.mass > me.mass*1.15){
+      if(Date.now() < myBoostTimers.shieldUntil) continue; // щит активен
+      me.alive = false;
+      onDeath();
+    }
+  }
+}
+
+// ---------------------------------------------------------------
+// Movement
+// ---------------------------------------------------------------
+function updateMe(dt){
+  if(!me || !me.alive) return;
+  const worldMouseX = camera.x + mouse.x/camera.zoom;
+  const worldMouseY = camera.y + mouse.y/camera.zoom;
+  const dx = worldMouseX - me.x, dy = worldMouseY - me.y;
+  const len = Math.sqrt(dx*dx+dy*dy) || 1;
+  me.dirX = dx/len; me.dirY = dy/len;
+
+  const screenDist = Math.sqrt(Math.pow(mouse.x-canvas.width/2,2)+Math.pow(mouse.y-canvas.height/2,2));
+  const strength = Math.min(1, screenDist/220);
+
+  const speedMult = Date.now() < myBoostTimers.speedUntil ? 1.4 : 1;
+  const speed = radiusToSpeed(me.r) * strength * speedMult;
+  me.x += me.dirX * speed * dt * 60;
+  me.y += me.dirY * speed * dt * 60;
+
+  if(myEconomy.inventory.activeSkin === 'neon_trail' && Math.random() < 0.5){
+    particles.push({ x:me.x, y:me.y, vx:rand(-0.3,0.3), vy:rand(-0.3,0.3), life:0.6, color:myColor });
+  }
+
+  me.x = clamp(me.x, me.r, WORLD.w - me.r);
+  me.y = clamp(me.y, me.r, WORLD.h - me.r);
+
+  if(me.mass > 60){
+    me.mass -= me.mass * 0.00003 * dt * 60;
+    me.r = massToRadius(me.mass);
+  }
+  maxMassReached = Math.max(maxMassReached, me.mass);
+}
+
+function interpolateOthers(){
+  const now = Date.now();
+  for(const id in otherPlayers){
+    const o = otherPlayers[id];
+    const elapsed = clamp(now - o.recvAt, 0, EXTRAPOLATE_CAP);
+    const predX = o.rawX + o.vx*(elapsed/1000);
+    const predY = o.rawY + o.vy*(elapsed/1000);
+    o.dispX += (predX - o.dispX) * 0.18;
+    o.dispY += (predY - o.dispY) * 0.18;
+  }
+}
+
+function updateEffects(dt){
+  for(let i=floaters.length-1;i>=0;i--){
+    const f = floaters[i];
+    f.y += f.vy; f.life -= dt*0.9;
+    if(f.life<=0) floaters.splice(i,1);
+  }
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vx*=0.94; p.vy*=0.94; p.life -= dt*1.6;
+    if(p.life<=0) particles.splice(i,1);
+  }
+  if(camera.shake > 0) camera.shake *= 0.85;
+  if(camera.shake < 0.1) camera.shake = 0;
+}
+
+// ---------------------------------------------------------------
+// Death
+// ---------------------------------------------------------------
+function computeRank(){
+  const list = [{ id:'me', mass: me.mass }];
+  for(const id in otherPlayers){ if(otherPlayers[id].alive) list.push({ id, mass: otherPlayers[id].mass }); }
+  list.sort((a,b)=>b.mass-a.mass);
+  const idx = list.findIndex(p=>p.id==='me');
+  return { rank: idx+1, total: list.length };
+}
+
+function onDeath(){
+  running = false;
+  const r = computeRank();
+  document.getElementById('finalMass').textContent = Math.round(maxMassReached);
+  document.getElementById('deathRank').textContent = r.total>1 ? `место ${r.rank} из ${r.total} живых клёков` : '';
+  document.getElementById('deathScreen').classList.remove('hidden');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('leaderboard').classList.add('hidden');
+  mini.classList.add('hidden');
+  camera.shake = 16;
+  sfxDeath();
+  killRemote(MY_ID, 0);
+}
+
+// ---------------------------------------------------------------
+// Camera
+// ---------------------------------------------------------------
+function updateCamera(){
+  if(!me) return;
+  const targetZoom = clamp(42/Math.sqrt(Math.max(1,me.mass))+0.28, 0.35, 1);
+  camera.zoom += (targetZoom - camera.zoom)*0.05;
+  camera.x += ((me.x - canvas.width/2/camera.zoom) - camera.x)*0.12;
+  camera.y += ((me.y - canvas.height/2/camera.zoom) - camera.y)*0.12;
+}
+
+// ---------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------
+function worldToScreen(x,y){
+  let sx = (x-camera.x)*camera.zoom;
+  let sy = (y-camera.y)*camera.zoom;
+  if(camera.shake > 0){
+    sx += rand(-camera.shake, camera.shake);
+    sy += rand(-camera.shake, camera.shake);
+  }
+  return { x: sx, y: sy };
+}
+
+function drawGrid(){
+  ctx.save();
+  ctx.strokeStyle = 'rgba(93,255,176,0.06)';
+  ctx.lineWidth = 1;
+  const size = 90;
+  const startX = -((camera.x*camera.zoom) % (size*camera.zoom));
+  const startY = -((camera.y*camera.zoom) % (size*camera.zoom));
+  for(let x=startX; x<canvas.width; x+=size*camera.zoom){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+  for(let y=startY; y<canvas.height; y+=size*camera.zoom){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawWorldBounds(){
+  const tl = worldToScreen(0,0);
+  const br = worldToScreen(WORLD.w, WORLD.h);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,93,143,0.5)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(tl.x, tl.y, br.x-tl.x, br.y-tl.y);
+  ctx.restore();
+}
+
+function drawFood(){
+  for(const f of food){
+    const s = worldToScreen(f.x,f.y);
+    if(s.x < -20 || s.x > canvas.width+20 || s.y < -20 || s.y > canvas.height+20) continue;
+    const pulse = 1 + Math.sin(f.pulse)*0.12;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, Math.max(1.5,f.r*camera.zoom*pulse), 0, Math.PI*2);
+    ctx.fillStyle = f.color;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawBlob(x,y,r,color,name,isMe){
+  const s = worldToScreen(x,y);
+  const rr = r*camera.zoom;
+  if(s.x < -rr-30 || s.x > canvas.width+rr+30 || s.y < -rr-30 || s.y > canvas.height+rr+30) return;
+
+  if(isMe){
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, rr+4, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  const mySkin = isMe ? myEconomy.inventory.activeSkin : null;
+
+  let grad;
+  if(mySkin === 'galaxy'){
+    grad = ctx.createRadialGradient(s.x-rr*0.3, s.y-rr*0.3, rr*0.1, s.x, s.y, rr);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.4, '#c65dff');
+    grad.addColorStop(0.7, '#5dc8ff');
+    grad.addColorStop(1, '#2a0a4a');
+  } else {
+    const [r1,g1,b1] = hexToRgb(color);
+    grad = ctx.createRadialGradient(s.x-rr*0.3, s.y-rr*0.3, rr*0.15, s.x, s.y, rr);
+    grad.addColorStop(0, `rgba(${Math.min(255,r1+60)},${Math.min(255,g1+60)},${Math.min(255,b1+60)},1)`);
+    grad.addColorStop(1, color);
+  }
+
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, rr, 0, Math.PI*2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, rr*0.06);
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.stroke();
+
+  if(isMe && Date.now() < myBoostTimers.shieldUntil){
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, rr+8, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(93,200,255,0.75)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  if(mySkin === 'kozlo_horns'){
+    ctx.fillStyle = '#e8d9b0';
+    ctx.beginPath();
+    ctx.moveTo(s.x-rr*0.5, s.y-rr*0.7); ctx.lineTo(s.x-rr*0.7, s.y-rr*1.25); ctx.lineTo(s.x-rr*0.25, s.y-rr*0.8);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s.x+rr*0.5, s.y-rr*0.7); ctx.lineTo(s.x+rr*0.7, s.y-rr*1.25); ctx.lineTo(s.x+rr*0.25, s.y-rr*0.8);
+    ctx.closePath(); ctx.fill();
+  }
+  if(mySkin === 'crown'){
+    ctx.fillStyle = '#ffd15d';
+    ctx.beginPath();
+    ctx.moveTo(s.x-rr*0.5, s.y-rr*0.9);
+    ctx.lineTo(s.x-rr*0.25, s.y-rr*1.35);
+    ctx.lineTo(s.x, s.y-rr*0.95);
+    ctx.lineTo(s.x+rr*0.25, s.y-rr*1.35);
+    ctx.lineTo(s.x+rr*0.5, s.y-rr*0.9);
+    ctx.closePath(); ctx.fill();
+  }
+
+  if(rr > 14){
+    ctx.fillStyle = 'rgba(4,20,13,0.9)';
+    ctx.font = `${Math.max(10, rr*0.28)}px Courier New`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, s.x, s.y);
+  }
+}
+
+function drawEffects(){
+  for(const p of particles){
+    const s = worldToScreen(p.x,p.y);
+    ctx.globalAlpha = Math.max(0,p.life);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 3*camera.zoom, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  for(const f of floaters){
+    const s = worldToScreen(f.x, f.y);
+    ctx.globalAlpha = Math.max(0,f.life);
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 16px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(f.text, s.x, s.y);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawMinimap(){
+  mctx.clearRect(0,0,mini.width,mini.height);
+  mctx.fillStyle = 'rgba(93,255,176,0.06)';
+  mctx.fillRect(0,0,mini.width,mini.height);
+  const sx = mini.width/WORLD.w, sy = mini.height/WORLD.h;
+  for(const id in otherPlayers){
+    const o = otherPlayers[id];
+    if(!o.alive) continue;
+    mctx.fillStyle = o.color;
+    mctx.beginPath();
+    mctx.arc(o.dispX*sx, o.dispY*sy, 2, 0, Math.PI*2);
+    mctx.fill();
+  }
+  if(me && me.alive){
+    mctx.fillStyle = '#ffffff';
+    mctx.beginPath();
+    mctx.arc(me.x*sx, me.y*sy, 3.5, 0, Math.PI*2);
+    mctx.fill();
+  }
+  mctx.strokeStyle = 'rgba(93,255,176,0.4)';
+  mctx.strokeRect(0,0,mini.width,mini.height);
+}
+
+function updateHUD(){
+  if(!me) return;
+  document.getElementById('massVal').textContent = Math.round(me.mass);
+  document.getElementById('syncVal').textContent = syncOk ? 'ок' : '...';
+  document.getElementById('syncDot').className = 'dot ' + (syncOk?'ok':'bad');
+
+  const list = [{ name: myName+' (ты)', mass: me.mass, me:true }];
+  for(const id in otherPlayers){
+    const o = otherPlayers[id];
+    if(o.alive) list.push({ name:o.name, mass:o.mass, me:false });
+  }
+  list.sort((a,b)=>b.mass-a.mass);
+  const top = list.slice(0,8);
+  const lb = document.getElementById('lbList');
+  lb.innerHTML = '';
+  for(const p of top){
+    const li = document.createElement('li');
+    li.textContent = `${p.name} — ${Math.round(p.mass)}`;
+    if(p.me) li.classList.add('me');
+    lb.appendChild(li);
+  }
+}
+
+// ---------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------
+let lastTime = performance.now();
+function loop(now){
+  const dt = Math.min(0.05, (now-lastTime)/1000);
+  lastTime = now;
+
+  if(running){
+    updateMe(dt);
+    interpolateOthers();
+    handleLocalEating();
+    updateEffects(dt);
+    updateCamera();
+  }
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+  drawWorldBounds();
+  drawFood();
+  for(const id in otherPlayers){
+    const o = otherPlayers[id];
+    if(o.alive) drawBlob(o.dispX, o.dispY, o.r, o.color, o.name, false);
+  }
+  if(me && me.alive) drawBlob(me.x, me.y, me.r, myColor, myName, true);
+  drawEffects();
+
+  if(running){
+    updateHUD();
+    drawMinimap();
+  }
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ---------------------------------------------------------------
+// Lobby preview
+// ---------------------------------------------------------------
+let lobbyTimer = null;
+async function refreshLobbyCount(){
+  try{
+    const listRes = await window.storage.list('p:', true);
+    if(!listRes || !listRes.keys){
+      document.getElementById('onlineCount').innerHTML = '<span class="dot ok"></span>пока никого — будь первым клёком';
+      return;
+    }
+    const now = Date.now();
+    let alive = 0;
+    for(const key of listRes.keys){
+      try{
+        const r = await window.storage.get(key, true);
+        if(!r) continue;
+        const data = JSON.parse(r.value);
+        if(data.alive && now - data.ts < STALE_MS) alive++;
+      }catch(e){}
+    }
+    document.getElementById('onlineCount').innerHTML = alive > 0
+      ? `<span class="dot ok"></span>сейчас играют: ${alive}`
+      : '<span class="dot ok"></span>пока никого — будь первым клёком';
+  }catch(err){
+    document.getElementById('onlineCount').innerHTML = '<span class="dot bad"></span>не удалось проверить онлайн';
+  }
+}
+refreshLobbyCount();
+lobbyTimer = setInterval(refreshLobbyCount, 3000);
+
+setInterval(async ()=>{
+  if(twitchUser && document.getElementById('startScreen') && !document.getElementById('startScreen').classList.contains('hidden')){
+    myEconomy = await loadEconomy(twitchUser.id);
+    renderAuthUI();
+  }
+}, 5000);
+
+// ---------------------------------------------------------------
+// Start / Respawn
+// ---------------------------------------------------------------
+let pollInterval = null;
+
+function startGame(){
+  ensureAudio();
+  const nameInput = document.getElementById('nameInput');
+  myName = nameInput.value.trim() || 'Клёк';
+
+  food = [];
+  spawnFood(FOOD_COUNT);
+  otherPlayers = {};
+  floaters = [];
+  particles = [];
+
+  let startMass = 22;
+  myBoostTimers = { speedUntil:0, shieldUntil:0, magnetUntil:0 };
+
+  const chosenBoost = document.getElementById('boostSelect') ? document.getElementById('boostSelect').value : '';
+  if(chosenBoost && twitchUser){
+    const count = (myEconomy.inventory.boosts && myEconomy.inventory.boosts[chosenBoost]) || 0;
+    if(count > 0){
+      myEconomy.inventory.boosts[chosenBoost] = count - 1;
+      saveEconomy(twitchUser.id, twitchUser.login, twitchUser.display_name, myEconomy);
+      const now = Date.now();
+      if(chosenBoost === 'speed_potion') myBoostTimers.speedUntil = now + 20000;
+      if(chosenBoost === 'shield') myBoostTimers.shieldUntil = now + 8000;
+      if(chosenBoost === 'magnet') myBoostTimers.magnetUntil = now + 30000;
+      if(chosenBoost === 'mega_start') startMass = 80;
+    }
+  }
+
+  me = {
+    x: rand(400, WORLD.w-400), y: rand(400, WORLD.h-400),
+    mass: startMass, r: massToRadius(startMass),
+    dirX:1, dirY:0, alive:true
+  };
+  maxMassReached = me.mass;
+
+  camera.x = me.x - canvas.width/2;
+  camera.y = me.y - canvas.height/2;
+  camera.zoom = 1;
+  camera.shake = 0;
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('deathScreen').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('leaderboard').classList.remove('hidden');
+  mini.classList.remove('hidden');
+
+  clearInterval(lobbyTimer);
+  running = true;
+
+  pollCycle();
+  clearInterval(pollInterval);
+  pollInterval = setInterval(pollCycle, POLL_MS);
+}
+
+document.getElementById('playBtn').addEventListener('click', startGame);
+document.getElementById('nameInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') startGame();
+});
+document.getElementById('respawnBtn').addEventListener('click', ()=>{
+  document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('deathScreen').classList.add('hidden');
+  lobbyTimer = setInterval(refreshLobbyCount, 3000);
+  refreshLobbyCount();
+});
+
+window.addEventListener('beforeunload', ()=>{
+  if(me && me.alive){ me.alive = false; pushMyState(); }
+});
+
+})();
+</script>
+</body>
+</html>
