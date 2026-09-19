@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Подключить Twitch</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid;
+    place-items: center;
+    background: #0e0b16;
+    color: #efeaff;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 28px;
+    border: 0;
+    border-radius: 8px;
+    background: #9146ff;
+    color: #fff;
+    font: inherit;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 5px 5px 0 #5c2bb3;
+    transition: transform .12s, box-shadow .12s, background .12s;
+  }
+  .btn:hover { background: #a970ff; transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #5c2bb3; }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 #5c2bb3; }
+  .btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .btn svg { width: 22px; height: 22px; fill: currentColor; }
+  #done { font-size: 22px; font-weight: 600; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<button id="connect" class="btn" type="button">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+  Подключить Twitch
+</button>
+
+<div id="done" hidden>✓ Twitch подключён</div>
+
+<script>
+  const CLIENT_ID = "ВАШ_CLIENT_ID";                          // из dev.twitch.tv/console/apps
+  const REDIRECT_URI = location.origin + location.pathname;   // должен совпадать с OAuth Redirect URL в Twitch
+
+  document.getElementById("connect").onclick = () => {
+    if (CLIENT_ID === "ВАШ_CLIENT_ID") { alert("Впишите CLIENT_ID в скрипте"); return; }
+    location.href = "https://id.twitch.tv/oauth2/authorize?" + new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URI,
+      response_type: "token",
+      scope: ""
+    });
+  };
+
+  // Вернулись с Twitch с токеном
+  const token = new URLSearchParams(location.hash.slice(1)).get("access_token");
+  if (token) {
+    history.replaceState(null, "", REDIRECT_URI);
+    // здесь можно сохранить/отправить token, если нужно
+    document.getElementById("connect").hidden = true;
+    document.getElementById("done").hidden = false;
+  }
+</script>
+</body>
+</html>
